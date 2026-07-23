@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberSentinel // Security Research & Insights</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        cyber: {
+                            50: '#e6fff9',
+                            100: '#b3ffe6',
+                            400: '#00ffaa',
+                            500: '#00e699',
+                            600: '#00b377',
+                            900: '#003322',
+                            dark: '#0a0f1d',
+                            card: '#111827',
+                            border: '#1f293d'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'Courier New', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- React & Babel CDNs -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #070b14;
+            color: #f1f5f9;
+        }
+        .code-font {
+            font-family: 'Fira Code', monospace;
+        }
+        .cyber-glow {
+            box-shadow: 0 0 15px rgba(0, 255, 170, 0.15);
+        }
+        .cyber-glow-hover:hover {
+            box-shadow: 0 0 20px rgba(0, 255, 170, 0.25);
+        }
+        .cyber-border-glow {
+            border-color: rgba(0, 255, 170, 0.4);
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b1120;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00e699;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 flex flex-col antialiased">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        const INITIAL_POSTS = [
+            {
+                id: 1,
+                title: "Deconstructing Zero-Day Exploit Chains in Cloud Environments",
+                category: "Vulnerabilities",
+                readTime: "7 min read",
+                date: "2026-07-20",
+                author: "Alex Rivers // Lead SecResearcher",
+                summary: "An in-depth technical walkthrough on how chained vulnerabilities in IAM roles can lead to unauthorized full-cluster compromise.",
+                content: `### Executive Summary\nCloud security misconfigurations continue to be the leading vector for high-impact infrastructure breaches. In this article, we analyze an attack path combining weak IAM policy evaluations and SSRF in internal sidecar proxies.\n\n### The Attack Chain\n1. **Initial Access**: Exploiting an unpatched SSRF vulnerability in the public web frontend.\n2. **Metadata Endpoint Querying**: Bypassing IP-filtering via host-header injection.\n3. **Token Extraction**: Retrieving temporary STS security credentials.\n4. **Privilege Escalation**: Utilizing misconfigured wildcard actions \`s3:*\` to dump sensitive customer databases.\n\n\`\`\`bash\n# Simulated SSRF Request payload\ncurl -H "X-Forwarded-For: 169.254.169.254" http://vulnerable-app.internal/proxy?url=http://169.254.169.254/latest/meta-data/iam/security-credentials/AdminRole\n\`\`\`\n\n### Remediation Strategies\n- Enable **IMDSv2** on all AWS EC2 instances requiring session tokens.\n- Implement strict **Least Privilege** policies using IAM Access Analyzer.\n- Monitor network egress for anomalous IP queries targeting cloud metadata APIs.`,
+                tags: ["Cloud Security", "AWS", "IAM", "Exploit Analysis"],
+                likes: 142,
+                userLiked: false,
+                comments: [
+                    { id: 101, author: "CyberNaut_99", text: "Super detailed explanation of IMDSv2 vs IMDSv1 mitigation!", date: "2026-07-21 10:30" },
+                    { id: 102, author: "DevOps_Dan", text: "We actually faced something similar last month. Wildcards in IAM are dangerous.", date: "2026-07-21 14:15" }
+                ]
+            },
+            {
+                id: 2,
+                title: "Modern Ransomware Tactics: Evasion via Process Hollowing",
+                category: "Malware Analysis",
+                readTime: "12 min read",
+                date: "2026-07-18",
+                author: "Elena Rostova // Reverse Engineer",
+                summary: "Analyzing recent malware samples that hijack legitimate OS processes to evade Endpoint Detection & Response (EDR) agents.",
+                content: `### Overview\nProcess hollowing is a code injection technique where a legitimate process image is unmapped and overwritten with malicious executable code.\n\n### Step-by-Step Injection Mechanics\n- **Step 1**: Spawn a benign target process (e.g., \`svchost.exe\`) in a suspended state using \`CREATE_SUSPENDED\` flags.\n- **Step 2**: Unmap the process memory headers using \`NtUnmapViewOfSection\`.\n- **Step 3**: Allocate virtual memory buffer within the target process using \`VirtualAllocEx\`.\n- **Step 4**: Write the payload code into the newly allocated space using \`WriteProcessMemory\`.\n- **Step 5**: Resume the primary thread via \`ResumeThread\` to execute payload under trusted process token.\n\n### Detection & Threat Hunting\nBehavioral EDRs detect this pattern by correlating parent-child creation trees with unmapped section execution memory protections.`,
+                tags: ["Malware", "Reverse Engineering", "Windows Internals", "EDR Bypasses"],
+                likes: 89,
+                userLiked: false,
+                comments: [
+                    { id: 201, author: "SecurityGeek", text: "Great breakdown! YARA rules for this pattern would be awesome.", date: "2026-07-19 09:05" }
+                ]
+            },
+            {
+                id: 3,
+                title: "Securing OAuth 2.0 & PKCE Implementation in SPA Web Applications",
+                category: "Web Security",
+                readTime: "5 min read",
+                date: "2026-07-12",
+                author: "Marcus Vance // Application Security Engineer",
+                summary: "Why implicit grant flow is dead and how to properly configure Proof Key for Code Exchange (PKCE) in modern React/Vue applications.",
+                content: `### Why Implicit Grant Flow is Deprecated\nOAuth 2.0 implicit grant returns access tokens directly in the URL hash fragment, exposing tokens to browser access logs, history, and referrer headers.\n\n### How PKCE Prevents Authorization Code Hijacking\n1. Client generates a cryptographic random string called \`code_verifier\`.\n2. Client hashes it using SHA-256 to create the \`code_challenge\`.\n3. Client sends challenge with initial authorization request.\n4. When exchanging code for access token, client presents the original \`code_verifier\`. The server verifies compliance before token generation.`,
+                tags: ["OAuth2", "Web Security", "Authentication", "React"],
+                likes: 215,
+                userLiked: false,
+                comments: []
+            }
+        ];
+
+        // CATEGORIES
+        const CATEGORIES = ["All", "Vulnerabilities", "Malware Analysis", "Web Security", "Cloud Security", "CTF & Tutorials"];
+
+        function Toast({ message, type, onClose }) {
+            useEffect(() => {
+                const timer = setTimeout(onClose, 3500);
+                return () => clearTimeout(timer);
+            }, [onClose]);
+
+            const bgColor = type === 'error' ? 'bg-rose-900/90 border-rose-500 text-rose-200' : 'bg-emerald-950/90 border-emerald-500 text-emerald-200';
+
+            return (
+                <div className={`fixed bottom-5 right-5 z-50 flex items-center gap-3 px-4 py-3 rounded-lg border backdrop-blur-md shadow-2xl transition-all duration-300 ${bgColor}`}>
+                    <i className={`fas ${type === 'error' ? 'fa-exclamation-circle text-rose-400' : 'fa-check-circle text-emerald-400'} text-lg`}></i>
+                    <span className="text-sm font-medium">{message}</span>
+                    <button onClick={onClose} className="ml-2 text-slate-400 hover:text-white">
+                        <i className="fas fa-times"></i>
+                    </button>
+                </div>
+            );
+        }
+
+        function App() {
+            const [posts, setPosts] = useState(() => {
+                const saved = localStorage.getItem('cybersentinel_posts');
+                return saved ? JSON.parse(saved) : INITIAL_POSTS;
+            });
+            const [selectedCategory, setSelectedCategory] = useState("All");
+            const [searchQuery, setSearchQuery] = useState("");
+            const [activeTab, setActiveTab] = useState("blog"); // 'blog' | 'admin'
+            const [activePost, setActivePost] = useState(null); // Article full modal
+            const [toast, setToast] = useState(null);
+
+            // Admin Authentication State
+            const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
+            const [adminPasscode, setAdminPasscode] = useState("");
+            const [showAuthModal, setShowAuthModal] = useState(false);
+
+            // New Post Form State
+            const [newPost, setNewPost] = useState({
+                title: "",
+                category: "Vulnerabilities",
+                readTime: "5 min read",
+                summary: "",
+                content: "",
+                tags: ""
+            });
+
+            // Comment state for detail view
+            const [commentAuthor, setCommentAuthor] = useState("");
+            const [commentText, setCommentText] = useState("");
+
+            useEffect(() => {
+                localStorage.setItem('cybersentinel_posts', JSON.stringify(posts));
+            }, [posts]);
+
+            const triggerToast = (message, type = 'success') => {
+                setToast({ message, type });
+            };
+
+            // Filtered posts calculation
+            const filteredPosts = useMemo(() => {
+                return posts.filter(post => {
+                    const matchesCategory = selectedCategory === "All" || post.category === selectedCategory;
+                    const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                          post.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                          post.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+                    return matchesCategory && matchesSearch;
+                });
+            }, [posts, selectedCategory, searchQuery]);
+
+            // Handle Like Toggle
+            const handleLike = (postId, e) => {
+                if (e) e.stopPropagation();
+                setPosts(prev => prev.map(p => {
+                    if (p.id === postId) {
+                        const newLikedState = !p.userLiked;
+                        const newLikes = newLikedState ? p.likes + 1 : p.likes - 1;
+                        return { ...p, likes: newLikes, userLiked: newLikedState };
+                    }
+                    return p;
+                }));
+
+                // Update active post if open
+                if (activePost && activePost.id === postId) {
+                    setActivePost(prev => ({
+                        ...prev,
+                        likes: prev.userLiked ? prev.likes - 1 : prev.likes + 1,
+                        userLiked: !prev.userLiked
+                    }));
+                }
+
+                triggerToast("Preference updated!");
+            };
+
+            const handleAddComment = (e) => {
+                e.preventDefault();
+                if (!commentAuthor.trim() || !commentText.trim()) {
+                    triggerToast("Please fill in both name and comment fields.", "error");
+                    return;
+                }
+
+                const newCommentObj = {
+                    id: Date.now(),
+                    author: commentAuthor.trim(),
+                    text: commentText.trim(),
+                    date: new Date().toISOString().replace('T', ' ').substring(0, 16)
+                };
+
+                const updatedPosts = posts.map(p => {
+                    if (p.id === activePost.id) {
+                        return { ...p, comments: [newCommentObj, ...p.comments] };
+                    }
+                    return p;
+                });
+
+                setPosts(updatedPosts);
+                setActivePost(prev => ({ ...prev, comments: [newCommentObj, ...prev.comments] }));
+                setCommentAuthor("");
+                setCommentText("");
+                triggerToast("Comment posted successfully!");
+            };
+
+            const handleAdminLogin = (e) => {
+                e.preventDefault();
+                // Simple front-end simulated auth check
+                if (adminPasscode === "admin123" || adminPasscode === "cyber2026") {
+                    setIsAdminLoggedIn(true);
+                    setShowAuthModal(false);
+                    setActiveTab("admin");
+                    setAdminPasscode("");
+                    triggerToast("Welcome back, Commander. Admin access granted.");
+                } else {
+                    triggerToast("Access Denied: Invalid Security Passcode", "error");
+                }
+            };
+
+            const handleCreatePost = (e) => {
+                e.preventDefault();
+                if (!newPost.title || !newPost.summary || !newPost.content) {
+                    triggerToast("Please complete all required fields.", "error");
+                    return;
+                }
+
+                const createdPost = {
+                    id: Date.now(),
+                    title: newPost.title,
+                    category: newPost.category,
+                    readTime: newPost.readTime || "5 min read",
+                    date: new Date().toISOString().split('T')[0],
+                    author: "Admin // CyberSentinel Lead",
+                    summary: newPost.summary,
+                    content: newPost.content,
+                    tags: newPost.tags.split(',').map(t => t.trim()).filter(Boolean),
+                    likes: 0,
+                    userLiked: false,
+                    comments: []
+                };
+
+                setPosts([createdPost, ...posts]);
+                setNewPost({
+                    title: "",
+                    category: "Vulnerabilities",
+                    readTime: "5 min read",
+                    summary: "",
+                    content: "",
+                    tags: ""
+                });
+                setActiveTab("blog");
+                triggerToast("New security intelligence briefing published!");
+            };
+
+            const handleDeletePost = (postId) => {
+                setPosts(prev => prev.filter(p => p.id !== postId));
+                if (activePost && activePost.id === postId) setActivePost(null);
+                triggerToast("Article removed from database.");
+            };
+
+            return (
+                <div className="flex-1 flex flex-col min-h-screen">
+                    {/* Top Announcement Bar */}
+                    <div className="bg-slate-900 border-b border-slate-800 text-xs text-slate-400 py-1.5 px-4 text-center flex items-center justify-center gap-2">
+                        <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span className="code-font text-emerald-400 font-semibold">[SYSTEM STATUS: NORMAL]</span>
+                        <span>Threat Intelligence Feed Active — Updated Daily</span>
+                    </div>
+
+                    {/* Navigation Header */}
+                    <header className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-md border-b border-slate-800/80">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+                            <div className="flex items-center gap-3 cursor-pointer" onClick={() => { setActiveTab("blog"); setActivePost(null); }}>
+                                <div className="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-lg shadow-emerald-500/10">
+                                    <i className="fas fa-shield-halved text-xl"></i>
+                                </div>
+                                <div>
+                                    <h1 className="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+                                        CYBER<span className="text-emerald-400 code-font">SENTINEL</span>
+                                    </h1>
+                                    <p className="text-[10px] text-slate-400 code-font uppercase tracking-widest">SecOps & Intelligence</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-4">
+                                <button 
+                                    onClick={() => { setActiveTab("blog"); setActivePost(null); }}
+                                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${activeTab === 'blog' ? 'bg-slate-800 text-emerald-400 border border-slate-700' : 'text-slate-400 hover:text-slate-200'}`}
+                                >
+                                    <i className="fas fa-newspaper mr-2"></i>Articles
+                                </button>
+
+                                {isAdminLoggedIn ? (
+                                    <button 
+                                        onClick={() => setActiveTab("admin")}
+                                        className={`px-3 py-1.5 rounded-md text-sm font-medium transition flex items-center gap-2 ${activeTab === 'admin' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'text-slate-400 hover:text-slate-200'}`}
+                                    >
+                                        <i className="fas fa-user-shield text-emerald-400"></i>
+                                        <span>Admin Console</span>
+                                        <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                                    </button>
+                                ) : (
+                                    <button 
+                                        onClick={() => setShowAuthModal(true)}
+                                        className="px-3.5 py-1.5 rounded-md text-xs font-semibold code-font bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 hover:border-slate-600 transition flex items-center gap-2"
+                                    >
+                                        <i className="fas fa-lock text-emerald-400"></i>
+                                        <span>Admin Login</span>
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* Toast Notification Container */}
+                    {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+
+                    {}
+                    {activeTab === 'blog' && !activePost && (
+                        <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+                            {/* Hero Banner */}
+                            <div className="relative rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900/90 to-emerald-950/40 border border-slate-800 p-8 sm:p-10 mb-10 overflow-hidden shadow-2xl">
+                                <div className="absolute top-0 right-0 -mt-12 -mr-12 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none"></div>
+                                <div className="relative z-10 max-w-3xl">
+                                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium code-font mb-4">
+                                        <i className="fas fa-terminal"></i> RESEARCH_HUB_V2.6
+                                    </div>
+                                    <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight mb-4">
+                                        Cybersecurity Insights, Vulnerability Analysis & Exploit Defense
+                                    </h2>
+                                    <p className="text-slate-400 text-base sm:text-lg leading-relaxed mb-6">
+                                        Curated operational security briefings, malware breakdowns, and offensive security research written by cybersecurity practitioners.
+                                    </p>
+                                    
+                                    {/* Search Input */}
+                                    <div className="relative max-w-xl">
+                                        <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                                        <input 
+                                            type="text" 
+                                            placeholder="Search CVEs, attack vectors, tags (e.g., AWS, Malware, PKCE)..."
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            className="w-full bg-slate-950/80 border border-slate-800 focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/60 text-slate-100 placeholder-slate-500 rounded-xl pl-11 pr-10 py-3 text-sm outline-none transition"
+                                        />
+                                        {searchQuery && (
+                                            <button 
+                                                onClick={() => setSearchQuery("")}
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 text-sm"
+                                            >
+                                                <i className="fas fa-times-circle"></i>
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {}
+                            <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-8 scrollbar-none">
+                                {CATEGORIES.map(category => (
+                                    <button
+                                        key={category}
+                                        onClick={() => setSelectedCategory(category)}
+                                        className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-200 ${
+                                            selectedCategory === category 
+                                                ? 'bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20 font-bold' 
+                                                : 'bg-slate-900/80 hover:bg-slate-800 text-slate-400 border border-slate-800 hover:text-slate-200'
+                                        }`}
+                                    >
+                                        {category}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Blog Posts Grid */}
+                            {filteredPosts.length === 0 ? (
+                                <div className="text-center py-16 bg-slate-900/40 rounded-2xl border border-slate-800">
+                                    <i className="fas fa-bug-slash text-4xl text-slate-600 mb-3"></i>
+                                    <h3 className="text-lg font-semibold text-slate-300">No Intelligence Briefings Found</h3>
+                                    <p className="text-slate-500 text-sm mt-1">Try adjusting your search criteria or category filter.</p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {filteredPosts.map(post => (
+                                        <article 
+                                            key={post.id} 
+                                            onClick={() => setActivePost(post)}
+                                            className="group relative bg-slate-900/70 hover:bg-slate-900 rounded-2xl border border-slate-800 hover:border-slate-700/80 p-6 flex flex-col justify-between transition-all duration-300 cursor-pointer cyber-glow-hover"
+                                        >
+                                            <div>
+                                                {/* Header Badges */}
+                                                <div className="flex items-center justify-between text-xs text-slate-400 mb-4">
+                                                    <span className="px-2.5 py-1 rounded-md bg-slate-800 border border-slate-700 text-emerald-400 font-medium code-font">
+                                                        {post.category}
+                                                    </span>
+                                                    <span className="flex items-center gap-1.5 text-slate-500">
+                                                        <i className="far fa-clock"></i> {post.readTime}
+                                                    </span>
+                                                </div>
+
+                                                <h3 className="text-xl font-bold text-slate-100 group-hover:text-emerald-400 transition-colors duration-200 mb-3 line-clamp-2 leading-snug">
+                                                    {post.title}
+                                                </h3>
+
+                                                <p className="text-slate-400 text-sm line-clamp-3 mb-6 leading-relaxed">
+                                                    {post.summary}
+                                                </p>
+                                            </div>
+
+                                            <div>
+                                                {/* Tags */}
+                                                <div className="flex flex-wrap gap-1.5 mb-5">
+                                                    {post.tags.slice(0, 3).map((tag, idx) => (
+                                                        <span key={idx} className="text-[11px] code-font text-slate-400 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
+                                                            #{tag}
+                                                        </span>
+                                                    ))}
+                                                    {post.tags.length > 3 && (
+                                                        <span className="text-[11px] code-font text-slate-500 px-1 py-0.5">
+                                                            +{post.tags.length - 3}
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                {/* Card Footer */}
+                                                <div className="flex items-center justify-between pt-4 border-t border-slate-800/80 text-xs text-slate-400">
+                                                    <span className="font-mono text-slate-500">{post.date}</span>
+                                                    
+                                                    <div className="flex items-center gap-4">
+                                                        <button 
+                                                            onClick={(e) => handleLike(post.id, e)}
+                                                            className={`flex items-center gap-1.5 font-medium transition ${post.userLiked ? 'text-rose-500' : 'hover:text-rose-400'}`}
+                                                        >
+                                                            <i className={`${post.userLiked ? 'fas' : 'far'} fa-heart`}></i>
+                                                            <span>{post.likes}</span>
+                                                        </button>
+
+                                                        <span className="flex items-center gap-1.5 text-slate-400">
+                                                            <i className="far fa-comment"></i>
+                                                            <span>{post.comments.length}</span>
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </article>
+                                    ))}
+                                </div>
+                            )}
+                        </main>
+                    )}
+
+                    {}
+                    {activePost && (
+                        <div className="flex-1 max-w-4xl mx-auto px-4 sm:px-6 py-8 w-full">
+                            <button 
+                                onClick={() => setActivePost(null)}
+                                className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-slate-400 hover:text-emerald-400 transition"
+                            >
+                                <i className="fas fa-arrow-left"></i> Back to Research Feed
+                            </button>
+
+                            <article className="bg-slate-900/90 rounded-2xl border border-slate-800 p-6 sm:p-10 shadow-2xl">
+                                {/* Article Header */}
+                                <div className="border-b border-slate-800 pb-6 mb-8">
+                                    <div className="flex flex-wrap items-center gap-3 mb-4">
+                                        <span className="px-3 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold code-font">
+                                            {activePost.category}
+                                        </span>
+                                        <span className="text-xs text-slate-400 flex items-center gap-1">
+                                            <i className="far fa-clock"></i> {activePost.readTime}
+                                        </span>
+                                        <span className="text-xs text-slate-500 font-mono">Published: {activePost.date}</span>
+                                    </div>
+
+                                    <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight mb-4">
+                                        {activePost.title}
+                                    </h1>
+
+                                    <div className="flex items-center justify-between text-xs text-slate-400 pt-2">
+                                        <span className="font-mono text-emerald-300 flex items-center gap-2">
+                                            <i className="fas fa-[#00ffaa] fa-user-ninja"></i> {activePost.author}
+                                        </span>
+                                        
+                                        <div className="flex items-center gap-3">
+                                            {isAdminLoggedIn && (
+                                                <button 
+                                                    onClick={() => handleDeletePost(activePost.id)}
+                                                    className="px-2.5 py-1 rounded bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/30 text-xs transition"
+                                                >
+                                                    <i className="fas fa-trash-alt mr-1"></i> Delete
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Article Body formatted text preview */}
+                                <div className="prose prose-invert max-w-none text-slate-300 leading-relaxed text-sm sm:text-base space-y-4 whitespace-pre-wrap font-sans">
+                                    {activePost.content}
+                                </div>
+
+                                {/* Tags Footer */}
+                                <div className="mt-8 pt-6 border-t border-slate-800 flex flex-wrap gap-2">
+                                    {activePost.tags.map((tag, idx) => (
+                                        <span key={idx} className="text-xs code-font text-slate-300 bg-slate-950 px-3 py-1 rounded-lg border border-slate-800">
+                                            #{tag}
+                                        </span>
+                                    ))}
+                                </div>
+
+                                {/* Like Action Button */}
+                                <div className="my-8 py-4 bg-slate-950/60 rounded-xl border border-slate-800/80 flex items-center justify-between px-6">
+                                    <span className="text-sm text-slate-300 font-medium">Found this analysis insightful?</span>
+                                    <button 
+                                        onClick={(e) => handleLike(activePost.id, e)}
+                                        className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition ${
+                                            activePost.userLiked 
+                                                ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40' 
+                                                : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+                                        }`}
+                                    >
+                                        <i className={`${activePost.userLiked ? 'fas text-rose-500' : 'far'} fa-heart text-base`}></i>
+                                        <span>{activePost.likes} Likes</span>
+                                    </button>
+                                </div>
+
+                                {/* Comments Section */}
+                                <section className="mt-10 pt-8 border-t border-slate-800">
+                                    <h3 className="text-lg font-bold text-slate-100 mb-6 flex items-center gap-2">
+                                        <i className="far fa-comments text-emerald-400"></i>
+                                        <span>Peer Discussions ({activePost.comments.length})</span>
+                                    </h3>
+
+                                    {/* Add Comment Form */}
+                                    <form onSubmit={handleAddComment} className="mb-8 bg-slate-950/80 p-4 rounded-xl border border-slate-800">
+                                        <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 code-font">Add Security Note / Comment</h4>
+                                        <div className="mb-3">
+                                            <input 
+                                                type="text" 
+                                                placeholder="Handle / Handle name (e.g., SecOps_Sam)"
+                                                value={commentAuthor}
+                                                onChange={(e) => setCommentAuthor(e.target.value)}
+                                                className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 placeholder-slate-500 outline-none focus:border-emerald-500"
+                                            />
+                                        </div>
+                                        <div className="mb-3">
+                                            <textarea 
+                                                rows="3"
+                                                placeholder="Share your perspective, corrections, or questions..."
+                                                value={commentText}
+                                                onChange={(e) => setCommentText(e.target.value)}
+                                                className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 placeholder-slate-500 outline-none focus:border-emerald-500"
+                                            ></textarea>
+                                        </div>
+                                        <div className="flex justify-end">
+                                            <button 
+                                                type="submit"
+                                                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold text-xs rounded-lg transition shadow-md shadow-emerald-500/10"
+                                            >
+                                                Submit Comment
+                                            </button>
+                                        </div>
+                                    </form>
+
+                                    {/* Comments List */}
+                                    <div className="space-y-4">
+                                        {activePost.comments.length === 0 ? (
+                                            <p className="text-xs text-slate-500 italic text-center py-4">No comments on this article yet. Be the first to start the discussion.</p>
+                                        ) : (
+                                            activePost.comments.map(c => (
+                                                <div key={c.id} className="bg-slate-950/40 p-4 rounded-xl border border-slate-800/80">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <span className="text-xs font-semibold text-emerald-400 code-font">@{c.author}</span>
+                                                        <span className="text-[10px] text-slate-500 font-mono">{c.date}</span>
+                                                    </div>
+                                                    <p className="text-slate-300 text-xs leading-relaxed">{c.text}</p>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </section>
+                            </article>
+                        </div>
+                    )}
+
+                    {}
+                    {activeTab === 'admin' && (
+                        <main className="flex-1 max-w-4xl mx-auto px-4 sm:px-6 py-8 w-full">
+                            <div className="flex items-center justify-between mb-8 bg-slate-900/80 p-6 rounded-2xl border border-slate-800">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                                        <i className="fas fa-pen-nib text-xl"></i>
+                                    </div>
+                                    <div>
+                                        <h2 className="text-xl font-bold text-white">Admin Authoring Studio</h2>
+                                        <p className="text-xs text-slate-400">Create, format, and deploy new threat intelligence posts</p>
+                                    </div>
+                                </div>
+
+                                <button 
+                                    onClick={() => setIsAdminLoggedIn(false)}
+                                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 transition"
+                                >
+                                    Log Out Admin
+                                </button>
+                            </div>
+
+                            {/* Create Article Form */}
+                            <form onSubmit={handleCreatePost} className="bg-slate-900/90 rounded-2xl border border-slate-800 p-6 sm:p-8 space-y-6 shadow-xl">
+                                <h3 className="text-md font-bold text-slate-200 uppercase tracking-wider code-font pb-3 border-b border-slate-800">
+                                    Publish New Article
+                                </h3>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <div className="sm:col-span-2">
+                                        <label className="block text-xs font-semibold text-slate-300 mb-2">Article Title *</label>
+                                        <input 
+                                            type="text" 
+                                            required
+                                            placeholder="e.g., Analyzing CVE-2026-9081: Remote Code Execution"
+                                            value={newPost.title}
+                                            onChange={(e) => setNewPost({ ...newPost, title: e.target.value })}
+                                            className="w-full bg-slate-950 border border-slate-800 focus:border-emerald-500 rounded-lg px-3.5 py-2.5 text-xs text-slate-100 outline-none"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-300 mb-2">Category *</label>
+                                        <select 
+                                            value={newPost.category}
+                                            onChange={(e) => setNewPost({ ...newPost, category: e.target.value })}
+                                            className="w-full bg-slate-950 border border-slate-800 focus:border-emerald-500 rounded-lg px-3.5 py-2.5 text-xs text-slate-100 outline-none"
+                                        >
+                                            {CATEGORIES.filter(c => c !== "All").map(cat => (
+                                                <option key={cat} value={cat}>{cat}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-300 mb-2">Estimated Read Time</label>
+                                        <input 
+                                            type="text" 
+                                            placeholder="e.g., 6 min read"
+                                            value={newPost.readTime}
+                                            onChange={(e) => setNewPost({ ...newPost, readTime: e.target.value })}
+                                            className="w-full bg-slate-950 border border-slate-800 focus:border-emerald-500 rounded-lg px-3.5 py-2.5 text-xs text-slate-100 outline-none"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-300 mb-2">Tags (Comma-separated)</label>
+                                        <input 
+                                            type="text" 
+                                            placeholder="e.g., RCE, Zero-Day, Linux, Patch"
+                                            value={newPost.tags}
+                                            onChange={(e) => setNewPost({ ...newPost, tags: e.target.value })}
+                                            className="w-full bg-slate-950 border border-slate-800 focus:border-emerald-500 rounded-lg px-3.5 py-2.5 text-xs text-slate-100 outline-none"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-300 mb-2">Short Abstract / Summary *</label>
+                                    <textarea 
+                                        rows="2"
+                                        required
+                                        placeholder="A quick 1-2 sentence overview shown in article cards..."
+                                        value={newPost.summary}
+                                        onChange={(e) => setNewPost({ ...newPost, summary: e.target.value })}
+                                        className="w-full bg-slate-950 border border-slate-800 focus:border-emerald-500 rounded-lg px-3.5 py-2.5 text-xs text-slate-100 outline-none"
+                                    ></textarea>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-300 mb-2">Full Article Content (Markdown/Text) *</label>
+                                    <textarea 
+                                        rows="12"
+                                        required
+                                        placeholder="Write full technical analysis, writeups, code snippets, and remediation guidelines here..."
+                                        value={newPost.content}
+                                        onChange={(e) => setNewPost({ ...newPost, content: e.target.value })}
+                                        className="w-full bg-slate-950 border border-slate-800 focus:border-emerald-500 rounded-lg p-3.5 text-xs text-slate-100 code-font outline-none leading-relaxed"
+                                    ></textarea>
+                                </div>
+
+                                <div className="flex justify-end gap-3 pt-2">
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setActiveTab("blog")}
+                                        className="px-5 py-2 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button 
+                                        type="submit"
+                                        className="px-6 py-2 rounded-lg text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition shadow-lg shadow-emerald-500/20"
+                                    >
+                                        Publish Article
+                                    </button>
+                                </div>
+                            </form>
+                        </main>
+                    )}
+
+                    {}
+                    {showAuthModal && (
+                        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+                            <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
+                                <button 
+                                    onClick={() => setShowAuthModal(false)}
+                                    className="absolute top-4 right-4 text-slate-500 hover:text-slate-300 text-sm"
+                                >
+                                    <i className="fas fa-times"></i>
+                                </button>
+
+                                <div className="text-center mb-6">
+                                    <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mx-auto mb-3">
+                                        <i className="fas fa-lock text-lg"></i>
+                                    </div>
+                                    <h3 className="text-lg font-bold text-white">Admin Authentication</h3>
+                                    <p className="text-xs text-slate-400 mt-1">Enter security credentials to open publication console</p>
+                                </div>
+
+                                <form onSubmit={handleAdminLogin} className="space-y-4">
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-300 mb-1.5 code-font">PASSCODE</label>
+                                        <input 
+                                            type="password" 
+                                            placeholder="Enter passcode (Hint: admin123)"
+                                            value={adminPasscode}
+                                            onChange={(e) => setAdminPasscode(e.target.value)}
+                                            className="w-full bg-slate-950 border border-slate-800 focus:border-emerald-500 rounded-lg px-3.5 py-2.5 text-xs text-slate-100 outline-none"
+                                            autoFocus
+                                        />
+                                    </div>
+
+                                    <div className="bg-slate-950 p-3 rounded-lg border border-slate-800 text-[11px] text-slate-400 code-font flex items-center gap-2">
+                                        <i className="fas fa-info-circle text-emerald-400"></i>
+                                        <span>Demo Passcode: <strong className="text-emerald-400">admin123</strong></span>
+                                    </div>
+
+                                    <button 
+                                        type="submit"
+                                        className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-lg transition shadow-lg shadow-emerald-500/20"
+                                    >
+                                        Authenticate
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Footer */}
+                    <footer className="bg-slate-950 border-t border-slate-800/80 py-8 text-xs text-slate-500">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <div className="flex items-center gap-2">
+                                <i className="fas fa-shield-cat text-emerald-400 text-base"></i>
+                                <span className="font-semibold text-slate-400">CyberSentinel Security Platform</span>
+                            </div>
+                            <div className="code-font text-[11px] text-slate-500">
+                                Encrypted & Verified Content Channel
+                            </div>
+                        </div>
+                    </footer>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
